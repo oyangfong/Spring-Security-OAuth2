@@ -1,20 +1,41 @@
 package com.mysecurity.demo.config;
 
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 
+// 3-4. 核心认证配置
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    @Autowired
+    private AuthenticationProvider securityProvider;
+
+    @Override
+    protected UserDetailsService userDetailsService() {
+        //自定义用户信息类
+        return this.userDetailsService;
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        //自定义AuthenticationProvider
+        auth.authenticationProvider(securityProvider);
+    }
     //配置Spring Security的Filter链
     //过滤静态资源
     @Override
@@ -34,10 +55,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorizeRequests()
                 .antMatchers("/signup","/about").permitAll()  //无需认证
                 .antMatchers("/orders/**").hasRole("USER")    //用户权限
+                .antMatchers("/users/**").hasRole("ADMIN")    //管理员权限
                 .antMatchers("/admin/**").hasRole("ADMIN")    //管理员权限
                 .anyRequest().authenticated()  //需认证
                 .and()
                 .formLogin()
+                //跳转登录页面的控制器，该地址要保证和表单提交的地址一致！
                 .loginPage("/login").loginProcessingUrl("/login").permitAll()
                 .and().logout().permitAll()
                 .and().csrf().disable();  //暂时禁用CSRF，否则无法提交表单
@@ -47,14 +70,14 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     * 在内存中验证登录
     * In-Memory Authentication  基于内存的身份认证功能。也就是说身份信息是保存到内存中。这种方式了解为主，在实际开发中使用较少。
     */
-    @Override
+    /*@Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         //添加自定义用户
         auth.inMemoryAuthentication()
                 .withUser("admin").password("123456").roles("ADMIN","USER")
                 .and()
                 .withUser("haha").password("123456").roles("USER");
-    }
+    }*/
 
 
     /*
